@@ -181,46 +181,28 @@ def etage_delete(request, pk):
 # endregion
 
 
-def get_routes(current_cp_id, final_cp_id):
-    n = 0
-    final_cp_id = final_cp_id
-    routes_cables = []
+def get_routes(current_cp, final_cp):
+    current_cp = CheckPoint.objects.get(id_checkpoint=current_cp)
+    final_cp = CheckPoint.objects.get(id_checkpoint=final_cp)
+    all_cables: List[Cable] = list(Cable.objects.all())
 
-    all_cables: List[Cable] = Cable.objects.all()
-    for cable in cables:
-        destination = cables[i].id_cp_destination
-        destination = destination.id_checkpoint
-        current_route = []
-        print("*******************destinations*******************")
-        print(destination)
-        if destination == current_cp_id:
-            if destination == final_cp_id:
-                routes_cables.append(current_route)
-                n += 1
-                continue
-
-            current_route.append(cables[i].id_cp_destination)
-            get_routes(destination, final_cp_id)
-            print(current_route)
-        else:
-            print("//////////////////////////////////////////////")
-            print(current_cp_id)
-            print("*******************          not destination          *******************")
-            print(destination)
-
-    def get_all_routes(current_check_point: CheckPoint):
+    def get_all_routes(current_check_point: CheckPoint, final_check_point: CheckPoint):
         cables_routes = []
         for cable in all_cables:
-            if cable.id_cp_origine is current_check_point:
+            if cable.id_cp_destination.id_checkpoint == final_check_point.id_checkpoint:
+                cables_routes.append(cable)
+                continue
+            if cable.id_cp_origine == current_check_point.id_checkpoint:
                 cables_routes.append(cable)
                 all_cables.remove(cable)
-                get_all_routes(cable.id_cp_destination)
+                get_all_routes(cable.id_cp_destination, final_cp)
 
-            if cable.id_cp_destination is current_check_point:
+            if cable.id_cp_destination.id_checkpoint == current_check_point.id_checkpoint:
                 cables_routes.append(cable)
                 all_cables.remove(cable)
-                get_all_routes(cable.id_cp_origine)
-    return routes_cables
+                get_all_routes(cable.id_cp_origine, final_cp)
+        print(cables_routes)
+    get_all_routes(current_cp, final_cp)
 
 
 def calcul_route_distances(routes_cables: [[]]):
