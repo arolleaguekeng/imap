@@ -189,20 +189,24 @@ def get_routes(current_cp, final_cp):
     def get_all_routes(current_check_point: CheckPoint, final_check_point: CheckPoint):
         cables_routes = []
         for cable in all_cables:
+            route = []
             if cable.id_cp_destination.id_checkpoint == final_check_point.id_checkpoint:
-                cables_routes.append(cable)
+                route.append(cable)
                 continue
+
             if cable.id_cp_origine == current_check_point.id_checkpoint:
-                cables_routes.append(cable)
+                route.append(cable)
                 all_cables.remove(cable)
                 get_all_routes(cable.id_cp_destination, final_cp)
 
             if cable.id_cp_destination.id_checkpoint == current_check_point.id_checkpoint:
-                cables_routes.append(cable)
+                route.append(cable)
                 all_cables.remove(cable)
                 get_all_routes(cable.id_cp_origine, final_cp)
+            cables_routes.append(route)
         print(cables_routes)
-    get_all_routes(current_cp, final_cp)
+        return cables_routes
+    return get_all_routes(current_cp, final_cp)
 
 
 def calcul_route_distances(routes_cables: [[]]):
