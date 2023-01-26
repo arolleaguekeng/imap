@@ -195,32 +195,28 @@ def get_routes(current_cp, final_cp):
                 continue
 
             if cable.id_cp_origine == current_check_point.id_checkpoint:
-                route.append(cable)
+                route.append(Route(route={cable: current_check_point}))
                 all_cables.remove(cable)
                 get_all_routes(cable.id_cp_destination, final_cp)
 
             if cable.id_cp_destination.id_checkpoint == current_check_point.id_checkpoint:
-                route.append(cable)
+                route.append({cable: current_check_point})
                 all_cables.remove(cable)
                 get_all_routes(cable.id_cp_origine, final_cp)
+
             cables_routes.append(route)
         print(cables_routes)
         return cables_routes
+
     return get_all_routes(current_cp, final_cp)
 
 
-def calcul_route_distances(routes_cables: [[]]):
-    distances = []
-    chemins_possible = {}
-    for i in range(0, len(routes_cables)):
-        chemins_possible[routes_cables[i]] = 0
-    for cables in routes_cables:
-        distance = 0
-        for cable in cables:
-            distance += cable.longr
-        chemins_possible[cables] = distance
-    distances.sort()
-
-    return distances
-
-
+def calcul_route_distances(routes: List[Route]):
+    # Sort Routes for get must small distance
+    for i in range(len(routes)):
+        for j in range(len(routes), 0):
+            if routes[j].distance > routes[i].distance:
+                permut = routes[i]
+                routes[i] = routes[j]
+                routes[j] = permut
+    return routes

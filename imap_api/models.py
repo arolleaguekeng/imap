@@ -1,3 +1,5 @@
+from typing import List
+
 from django.db import models
 
 
@@ -21,9 +23,6 @@ class CheckPoint(models.Model):
     image = models.CharField(max_length=255)
 
 
-
-
-
 class Salle(models.Model):
     numero = models.CharField(max_length=50, primary_key=True)
     id_batiment = models.ForeignKey(Batiment, on_delete=models.CASCADE)
@@ -35,5 +34,13 @@ class Cable(models.Model):
     id_cp_destination = models.ForeignKey(CheckPoint, on_delete=models.CASCADE, related_name='id_cp_destination')
     longr = models.FloatField()
     direction_origine = models.CharField(max_length=2)
+
+
+class Route:
+    def __int__(self, route: dict):
+        self.route = route
+        self.distance = 0
+        for cable in route.keys():
+            distance = distance + cable.longr
 
 
