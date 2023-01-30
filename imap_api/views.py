@@ -1,8 +1,11 @@
+from collections import deque
+
 from rest_framework.decorators import api_view
 from typing import List
 
 from imap_api.serializers import *
 from imap_api.services import *
+
 
 
 # region Batiment views
@@ -156,7 +159,7 @@ def etage_save(request):
 # Get All Etage
 @api_view(['GET'])
 def etage_list(request):
-    get_routes("CPB0", "CPA1")
+    get_routes("E", "C")
     return generic_get_all(request=request, obj=Etage, obj_serializer=EtageSerializer)
 
 
@@ -182,33 +185,64 @@ def etage_delete(request, pk):
 
 
 def get_routes(current_cp, final_cp):
+    print("--------------------------------------------------")
+    print("******Chemains pour quitter de [{}] à [{}] *******".format(current_cp, final_cp))
+    print("--------------------------------------------------")
+    print()
     current_cp = CheckPoint.objects.get(id_checkpoint=current_cp)
     final_cp = CheckPoint.objects.get(id_checkpoint=final_cp)
+
     all_cables: List[Cable] = list(Cable.objects.all())
+    cables_routes = []
+    route = []
+    print('--------Checkpoints connectés-----------------')
 
+    def get_matrice():
+        graph = {}
+        list_cp = list(CheckPoint.objects.all())
+        for cp in list_cp:
+            trs = {}
+            for cable in all_cables:
+                current_cp = cp.id_checkpoint
+                destination_cp = cable.id_cp_destination.id_checkpoint
+                origin_cp = cable.id_cp_origine.id_checkpoint
+                if destination_cp == current_cp:
+                    trs[cable.id_cp_origine.id_checkpoint] = cable.longr
+                if origin_cp == current_cp:
+                    trs[cable.id_cp_destination.id_checkpoint] = cable.longr
+                graph[cp.id_checkpoint] = trs
+        return graph
+
+    def dijktra(graph: dict, source):
+        assert all(graph[u][v] >=0 for u in graph.keys() for v in graph[u].keys())
+        precedent = {x: None for x in graph.keys()}
+        dejaTraite = {x: False for x in graph.keys()}
+        distance = {x: float('inf') for x in graph.keys()}
+        distance[source] = 0
+        a_traiter = [(0, source)]
+        rt = []
+        while a_traiter:
+            dist_noeud, noeud = a_traiter.pop()
+            if not dejaTraite[noeud]:
+                dejaTraite[noeud] = True
+                for voisin in graph[noeud].keys():
+                    dist_voisin = dist_noeud + graph[noeud][voisin]
+                    if dist_voisin < distance[voisin]:
+                        distance[voisin] = dist_voisin
+
+                        precedent[voisin] = noeud
+                        a_traiter.append((dist_voisin, voisin))
+            a_traiter.sort(reverse=True)
+        return distance
+
+    chemain = dijktra(graph=get_matrice(),source="A")
+    print('*************************** chemains***********************************')
+    print(chemain)
     def get_all_routes(current_check_point: CheckPoint, final_check_point: CheckPoint):
-        cables_routes = []
-        for cable in all_cables:
-            route = []
-            if cable.id_cp_destination.id_checkpoint == final_check_point.id_checkpoint:
-                route.append(cable)
-                continue
 
-            if cable.id_cp_origine == current_check_point.id_checkpoint:
-                route.append(Route(route={cable: current_check_point}))
-                all_cables.remove(cable)
-                get_all_routes(cable.id_cp_destination, final_cp)
 
-            if cable.id_cp_destination.id_checkpoint == current_check_point.id_checkpoint:
-                route.append({cable: current_check_point})
-                all_cables.remove(cable)
-                get_all_routes(cable.id_cp_origine, final_cp)
-
-            cables_routes.append(route)
-        print(cables_routes)
         return cables_routes
-
-    return get_all_routes(current_cp, final_cp)
+    get_all_routes(current_cp, final_cp)
 
 
 def calcul_route_distances(routes: List[Route]):
@@ -220,3 +254,9 @@ def calcul_route_distances(routes: List[Route]):
                 routes[i] = routes[j]
                 routes[j] = permut
     return routes
+
+
+
+
+
+
