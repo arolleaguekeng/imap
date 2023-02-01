@@ -189,13 +189,8 @@ def get_routes(current_cp, final_cp):
     print("******Chemains pour quitter de [{}] à [{}] *******".format(current_cp, final_cp))
     print("--------------------------------------------------")
     print()
-    current_cp = CheckPoint.objects.get(id_checkpoint=current_cp)
-    final_cp = CheckPoint.objects.get(id_checkpoint=final_cp)
 
     all_cables: List[Cable] = list(Cable.objects.all())
-    cables_routes = []
-    route = []
-    print('--------Checkpoints connectés-----------------')
 
     def get_matrice():
         graph = {}
@@ -213,50 +208,85 @@ def get_routes(current_cp, final_cp):
                 graph[cp.id_checkpoint] = trs
         return graph
 
+
     def dijktra(graph: dict, source):
-        assert all(graph[u][v] >=0 for u in graph.keys() for v in graph[u].keys())
+        print('--------Checkpoints connectés-----------------')
+        print(graph)
+        assert all(graph[u][v] >= 0 for u in graph.keys() for v in graph[u].keys())
         precedent = {x: None for x in graph.keys()}
         dejaTraite = {x: False for x in graph.keys()}
         distance = {x: float('inf') for x in graph.keys()}
         distance[source] = 0
         a_traiter = [(0, source)]
-        rt = []
+        n=0
         while a_traiter:
             dist_noeud, noeud = a_traiter.pop()
             if not dejaTraite[noeud]:
                 dejaTraite[noeud] = True
                 for voisin in graph[noeud].keys():
                     dist_voisin = dist_noeud + graph[noeud][voisin]
-                    if dist_voisin < distance[voisin]:
-                        distance[voisin] = dist_voisin
 
+                    n = n+1
+                    print(n)
+                    if dist_voisin < distance[voisin]:
+                        print('----------------------------')
+                        print(print("{}".format(distance)))
+                        distance[voisin] = dist_voisin
                         precedent[voisin] = noeud
                         a_traiter.append((dist_voisin, voisin))
             a_traiter.sort(reverse=True)
         return distance
 
-    chemain = dijktra(graph=get_matrice(),source="A")
-    print('*************************** chemains***********************************')
+
+    def dijkstraa(graph:dict, start, goal):
+        shorted_distance = {}
+        track_predecessor = {}
+        unseenNodes = graph
+        infity=999999
+        track_path = []
+
+        for node in unseenNodes:
+            shorted_distance[node] = infity
+        shorted_distance[start] = 0
+
+        while unseenNodes:
+
+            min_distance_node = None
+
+            for node in unseenNodes:
+                if min_distance_node is None:
+                    min_distance_node = node
+                elif shorted_distance[node] < shorted_distance[min_distance_node]:
+                    min_distance_node = node
+
+            path_options = graph[min_distance_node].items()
+
+            for child_node, weight in path_options:
+
+                if weight + shorted_distance[min_distance_node] < shorted_distance[child_node]:
+                    shorted_distance[child_node] = weight + shorted_distance[min_distance_node]
+                    track_predecessor[child_node] = min_distance_node
+            unseenNodes.pop(min_distance_node)
+        current_Node = goal
+
+        while current_Node != start:
+            try:
+                track_path.insert(0, current_Node)
+                current_Node = track_predecessor[current_Node]
+            except KeyError:
+                print("Path is not reachable")
+                break
+
+        track_path.insert(0, start)
+
+        if shorted_distance[goal] != infity:
+            print("shotest distance is" + str(shorted_distance[goal]))
+            print("Le meilleur chemain e" + str(track_path))
+
+
+    chemain = dijkstraa(graph=get_matrice(), start="B", goal="D")
+    print('*************************** chemains ***********************************')
     print(chemain)
-    def get_all_routes(current_check_point: CheckPoint, final_check_point: CheckPoint):
-
-
-        return cables_routes
-    get_all_routes(current_cp, final_cp)
-
-
-def calcul_route_distances(routes: List[Route]):
-    # Sort Routes for get must small distance
-    for i in range(len(routes)):
-        for j in range(len(routes), 0):
-            if routes[j].distance > routes[i].distance:
-                permut = routes[i]
-                routes[i] = routes[j]
-                routes[j] = permut
-    return routes
-
-
-
 
 
 
