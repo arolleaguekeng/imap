@@ -7,7 +7,6 @@ from imap_api.serializers import *
 from imap_api.services import *
 
 
-
 # region Batiment views
 
 # POST Batiment
@@ -159,7 +158,6 @@ def etage_save(request):
 # Get All Etage
 @api_view(['GET'])
 def etage_list(request):
-    get_routes("E", "C")
     return generic_get_all(request=request, obj=Etage, obj_serializer=EtageSerializer)
 
 
@@ -183,10 +181,12 @@ def etage_delete(request, pk):
 
 # endregion
 
-
-def get_routes(current_cp, final_cp):
+@api_view(['GET'])
+def get_routes(request, source, destination):
+    # source = request.query_params[source]
+    # destination = request.query_params[destination]
     print("--------------------------------------------------")
-    print("******Chemains pour quitter de [{}] à [{}] *******".format(current_cp, final_cp))
+    print("******Chemains pour quitter de [{}] à [{}] *******".format(source, destination))
     print("--------------------------------------------------")
     print()
 
@@ -208,41 +208,11 @@ def get_routes(current_cp, final_cp):
                 graph[cp.id_checkpoint] = trs
         return graph
 
-
-    def dijktra(graph: dict, source):
-        print('--------Checkpoints connectés-----------------')
-        print(graph)
-        assert all(graph[u][v] >= 0 for u in graph.keys() for v in graph[u].keys())
-        precedent = {x: None for x in graph.keys()}
-        dejaTraite = {x: False for x in graph.keys()}
-        distance = {x: float('inf') for x in graph.keys()}
-        distance[source] = 0
-        a_traiter = [(0, source)]
-        n=0
-        while a_traiter:
-            dist_noeud, noeud = a_traiter.pop()
-            if not dejaTraite[noeud]:
-                dejaTraite[noeud] = True
-                for voisin in graph[noeud].keys():
-                    dist_voisin = dist_noeud + graph[noeud][voisin]
-
-                    n = n+1
-                    print(n)
-                    if dist_voisin < distance[voisin]:
-                        print('----------------------------')
-                        print(print("{}".format(distance)))
-                        distance[voisin] = dist_voisin
-                        precedent[voisin] = noeud
-                        a_traiter.append((dist_voisin, voisin))
-            a_traiter.sort(reverse=True)
-        return distance
-
-
-    def dijkstraa(graph:dict, start, goal):
+    def dijkstra(graph: dict, start, goal):
         shorted_distance = {}
         track_predecessor = {}
         unseenNodes = graph
-        infity=999999
+        infity = 999999
         track_path = []
 
         for node in unseenNodes:
@@ -280,13 +250,11 @@ def get_routes(current_cp, final_cp):
         track_path.insert(0, start)
 
         if shorted_distance[goal] != infity:
-            print("shotest distance is" + str(shorted_distance[goal]))
-            print("Le meilleur chemain e" + str(track_path))
+            print("La plus petite distance est:  " + str(shorted_distance[goal]))
+            print("Le meilleur chemain est:  " + str(track_path))
 
+            return {"distance": shorted_distance[goal], "path": track_path}
 
-    chemain = dijkstraa(graph=get_matrice(), start="B", goal="D")
-    print('*************************** chemains ***********************************')
+    chemain = dijkstra(graph=get_matrice(), start=source, goal=destination)
     print(chemain)
-
-
-
+    return Response(chemain)

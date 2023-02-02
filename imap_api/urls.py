@@ -10,5 +10,6 @@ urlpatterns = [
     path('save-cable/', cable_save, name="save-cable"),
 
     path('etages', etage_list, name="etages"),
+    path('get-path/<str:source>/<str:destination>/', get_routes, name="get-path"),
 ]
 
