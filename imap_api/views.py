@@ -183,8 +183,6 @@ def etage_delete(request, pk):
 
 @api_view(['GET'])
 def get_routes(request, source, destination):
-    # source = request.query_params[source]
-    # destination = request.query_params[destination]
     print("--------------------------------------------------")
     print("******Chemains pour quitter de [{}] à [{}] *******".format(source, destination))
     print("--------------------------------------------------")
@@ -192,6 +190,8 @@ def get_routes(request, source, destination):
 
     # Pour retourner l'orientation inverse
     def orientation_inverse(orientation: str):
+
+        # Dictionaire des orientations avec leur contraire
         dif_graph = [
             {"N": "S"},
             {"S": "N"},
@@ -204,48 +204,72 @@ def get_routes(request, source, destination):
         ]
 
         # Parcour le dictionnaire et retourne la valeure
-        #de l'élément entrée en paramètre de la fonction
+        # de l'élément entrée en paramètre de la fonction
         for ortion in dif_graph:
             for i in ortion.keys():
                 if i == orientation:
                     print(ortion.get(i))
                     return ortion.get(i)
 
+    # Recupère tous les cables de la base de donnée
     all_cables: List[Cable] = list(Cable.objects.all())
 
+    # Genere une matrice adjacente en fonction des Checkpoints
     def get_matrice():
         graph = {}
+        # Recupère tous les cables de la base de donnée
         list_cp = list(CheckPoint.objects.all())
         for cp in list_cp:
-            trs = {}
+            graph_item = {}
+            # Parcour la liste des Checkpoints pour générer le graph
             for cable in all_cables:
+
+                # initialisation du point actuel, de l'origine et de la destination
                 current_cp = cp.id_checkpoint
                 destination_cp = cable.id_cp_destination.id_checkpoint
                 origin_cp = cable.id_cp_origine.id_checkpoint
+
+                # si le point courant est égale au point destination
+                # du du cable courrant, on ajoute le cable dans le dictionaire
                 if destination_cp == current_cp:
-                    trs[cable.id_cp_origine.id_checkpoint] = cable
+                    graph_item[cable.id_cp_origine.id_checkpoint] = cable
                 if origin_cp == current_cp:
-                    trs[cable.id_cp_destination.id_checkpoint] = cable
-                graph[cp.id_checkpoint] = trs
+                    graph_item[cable.id_cp_destination.id_checkpoint] = cable
+                graph[cp.id_checkpoint] = graph_item
 
         return graph
 
     def dijkstra(graph: dict, start, goal):
+        # stocke la plus petite distance
         shorted_distance = {}
+
+        # stocke le point précédent
         track_predecessor = {}
+
+        # stocke les noeux non visité
         unseenNodes = graph
+
         infity = 999999
+
+        # Stocke le chemain le plus court
         track_path = []
 
+        # Initialisation des plus petites distances
         for node in unseenNodes:
             shorted_distance[node] = infity
+
+        # Initialise la plus petite distance de tous les points à 0
         shorted_distance[start] = 0
 
+        # Vérifier si tous les noeuds ont été parcourus
         while unseenNodes:
 
+            # Initialise la distance minimale du noeud à None
             min_distance_node = None
 
+            # Parcoure les noeuds non consulté
             for node in unseenNodes:
+                # Si
                 if min_distance_node is None:
                     min_distance_node = node
                 elif shorted_distance[node] < shorted_distance[min_distance_node]:
@@ -256,13 +280,6 @@ def get_routes(request, source, destination):
             path_options = graph[min_distance_node].items()
 
             for child_node, weight in path_options:
-                print('///////////////////////////////////////////////////////////////')
-                print(type(child_node))
-
-                print('///////////////////////////////////////////////////////////////')
-                print(type(weight))
-                print('---------------------------------------------------------------')
-                print(type(shorted_distance[min_distance_node]))
                 if weight.longr + shorted_distance[min_distance_node] < shorted_distance[child_node]:
                     shorted_distance[child_node] = weight.longr + shorted_distance[min_distance_node]
                     track_predecessor[child_node] = min_distance_node
@@ -271,13 +288,12 @@ def get_routes(request, source, destination):
 
         while current_Node != start:
             try:
-                track_path.insert(0, current_Node)
+                track_path.insert(0, CheckPoint.objects.get(id_checkpoint=current_Node))
                 current_Node = track_predecessor[current_Node]
             except KeyError:
                 print("Path is not reachable")
                 break
-
-        track_path.insert(0, start)
+        track_path.insert(0, CheckPoint.objects.get(id_checkpoint=start))
 
         if shorted_distance[goal] != infity:
             print("La plus petite distance est:  " + str(shorted_distance[goal]))
@@ -289,9 +305,9 @@ def get_routes(request, source, destination):
     print(chemain)
     route = []
     # On parcoure la liste des cables qui constituent le chemain
-    for i in range(len(chemain["path"])-1):
-        cp = chemain["path"][i]
-        second_cp = chemain["path"][i+1]
+    for i in range(len(chemain["path"]) - 1):
+        cp = chemain["path"][i].id_checkpoint
+        second_cp = chemain["path"][i + 1].id_checkpoint
         # Parcour la liste de tous les cables pour rechercher les cables de la route
         for cable in all_cables:
             cbl_o = cable.id_cp_origine.id_checkpoint
@@ -306,13 +322,13 @@ def get_routes(request, source, destination):
 
                 # Si la destination du cable est le prochain
                 else:
-                    #Inverse l'origine du cable
+                    # Inverse l'origine du cable
                     inverse = orientation_inverse(cable.direction_origine)
                     cable.direction_origine = inverse
                 route.append(cable)
     print(route)
     serializer = CableSerializer(route, many=True)
     chemain["route"] = serializer.data
-
+    cp_serializer = CheckPointSerializer(chemain.get("path"), many=True)
+    chemain["path"] = cp_serializer.data
     return Response(chemain)
-

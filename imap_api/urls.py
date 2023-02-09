@@ -11,5 +11,7 @@ urlpatterns = [
 
     path('etages', etage_list, name="etages"),
     path('get-path/<str:source>/<str:destination>/', get_routes, name="get-path"),
+
+    path('get-salles', salle_list, name="get-salles"),
 ]
 
